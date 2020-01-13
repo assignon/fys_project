@@ -1,0 +1,41 @@
+<html>
+<head>
+    <!--<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.1/socket.io.js"></script>-->
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="myKey"></script>-->
+</head>
+
+<body>
+<input type="text" id="msg">
+<button id="send">send</button>
+<div id="msgs"></div>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
+<script type="text/javascript">
+    let socket = io.connect('http://127.0.0.1:5000')
+
+    socket.on('connect', function(){
+        socket.send('user is connected')
+
+        {#socket.on('ldr', function(data){#}
+        {#    let p = document.createElement('p')#}
+        {#    p.textContent = data#}
+        {#    document.getElementById('msgs').appendChild(p)#}
+        {#    console.log('receive msg')#}
+        //})
+    })
+
+    socket.on('message', function(msg){
+        let p = document.createElement('p')
+        p.textContent = msg
+        document.getElementById('msgs').appendChild(p)
+        console.log('receive msg')
+    })
+
+
+
+    document.getElementById('send').addEventListener('click', function(){
+        let msgVal = document.getElementById('msg').value
+        socket.send(msgVal)
+    })
+</script>
+</body>
+</html>
