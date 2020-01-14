@@ -1,11 +1,16 @@
+import asyncio
+import json
+import logging
+import websockets
 import os
 import time
 import RPi.GPIO as GPIO
-from pyfirmata import Arduino, util
-from flask_socketio import SocketIO, send
+# from pyfirmata import Arduino, util
+# from flask_socketio import SocketIO, send
 import serial, requests, json
 
 GPIO.setmode(GPIO.BCM)
+logging.basicConfig()
 # board = Arduino('/dev/ttyUSB0')
 # it = util.Iterator(board)
 pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
@@ -21,39 +26,25 @@ GPIO.setup(channel, GPIO.IN)
 # led = board.get_pin('d:3:p')
 # ldr = board.get_pin('a:0:i')
 
-arr = []
 
-
-# def callback(channel):
-#     if GPIO.input(channel):
-#         print('movement detected')
-#     else:
-#         print('mvt detected')
-
-
-def ldrdata():
-    ldr_arr = []
-    while True:
-        ldr_val = ldr.read()
-
-        if ldr_val is not None:
-            ldrval_round = round(ldr_val, 2)
-            # print(ldrval_round)
-            time.sleep(0.1)
-            ldr_arr.append(ldrval_round)
-
-            if ldrval_round < 0.03:
-                led.write(1)
-            else:
-                led.write(0)
-    return ldr_arr
-
-
-# def vibration_sensor():
+# def ldrdata():
+#     ldr_arr = []
 #     while True:
-#         data = pyser.readline()
-#         print(pyser)
-#         print(data)
+#         ldr_val = ldr.read()
+#
+#         if ldr_val is not None:
+#             ldrval_round = round(ldr_val, 2)
+#             # print(ldrval_round)
+#             time.sleep(0.1)
+#             ldr_arr.append(ldrval_round)
+#
+#             if ldrval_round < 0.03:
+#                 led.write(1)
+#             else:
+#                 led.write(0)
+#     return ldr_arr
+
+USERS = set()
 player_A = []
 player_B = []
 game_board = {
@@ -67,6 +58,14 @@ game_board = {
     u'7': 7,
     u'8': 8,
 }
+cube_faces = {
+    u'6': 1,
+    u'7': 2,
+    u'8': 3,
+    u'9': 4,
+    u'10':5,
+    u'11': 6,
+}
 players_turn = []
 combinations = [
         [0,1,2],
@@ -79,18 +78,20 @@ combinations = [
         [2,4,6]
     ]
 
-# def win_combinations():
-#     combinations = [
-#         [0,1,2],
-#         [3,4,5],
-#         [6,7,8],
-#         [0,3,6],
-#         [1,4,7],
-#         [2,5,8],
-#         [0,4,8],
-#         [2,4,6]
-#     ]
-#     return combinations
+def callback(channel):
+    # while True:
+
+    if GPIO.input(channel) == 0:
+        print('no mvt', GPIO.input(channel))
+        # while True:
+        #     data = pyser.readline().decode("ascii").rstrip()
+        #     if data != '':
+        #         face = cube_faces[data]
+        #         print(face)
+        #         break
+
+# GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
+# GPIO.add_event_callback(channel, callback)
 
 def current_player(data):
     if len(players_turn) == 0:
@@ -137,53 +138,112 @@ def play_again():
 def check_combination():
     winner = ''
     status = False
-    if len(player_A) == 3 or len(player_B) == 3:
-        # for c in combinations:
+    countA = 0
+    countB = 0
+    playerA_combination_arr = []
+    playerB_combination_arr = []
+    if len(player_A) >= 3:
         print(player_A)
         print(player_B)
-        for c in combinations:
-            for pa in player_A:
-                if pa in c:
-                    winner = 'A'
-                    status = True
-                else:
-                    status = False
-                    winner = 'no winner'
 
-            for pb in player_B:
-                if player_B in combinations:
-                    winner = 'B'
-                    status = True
+        for (i, c) in enumerate(combinations):
+            for pa in player_A:
+                if pa in combinations[i] and len(playerA_combination_arr) <= 3:
+                    # if len(playerA_combination_arr) <= 5:
+                    playerA_combination_arr.append(1)
+                    print('true')
                 else:
-                    status = False
-                    winner = 'no winner'
+                    playerA_combination_arr.append(0)
+                    print('false')
+
+            for pc in playerA_combination_arr:
+                countA += pc
+            if countA == 3:
+                status = True
+                winner = 'A'
+                countA = 0
+            else:
+                playerA_combination_arr = []
+                countA = 0
+
+    if len(player_B) >= 3:
+        for (i, c) in enumerate(combinations):
+            for pb in player_B:
+                if pb in combinations[i] and len(playerB_combination_arr) <= 3:
+                    # if len(playerA_combination_arr) <= 5:
+                    playerB_combination_arr.append(1)
+                    print('true')
+                else:
+                    playerB_combination_arr.append(0)
+                    print('false')
+
+            for pc in playerB_combination_arr:
+                countB += pc
+            if countB == 3:
+                status = True
+                winner = 'B'
+                countB = 0
+            else:
+                playerB_combination_arr = []
+                countB = 0
+
     return [winner, status]
 
-def touch_sensor():
-    while True:
-        data = pyser.readline().decode("ascii").rstrip()
-        print(data)
-        # if data != '':
-        #     print('DATA are')
-        # else:
-        #     print('no data yet')
-        if data != '':
-            # for i in range(0, 9):
-            current_player(game_board[data])
-                # if data == u'{}'.format(i):
-                #     print('{} is touched'.format(i))
-            combination = check_combination()
-            if combination[1]:
-                print('winner is: {}'.format(check_combination()[0]))
-            else:
-                print('no winner')
-                # play_again()
-            # break
-            # touch_sensor()
+def users_event():
+    return json.dumps({"type": "users", "count": len(USERS)})
+
+async def notify_users():
+    if USERS:  # asyncio.wait doesn't accept an empty list
+        message = users_event()
+        await asyncio.wait([user.send(message) for user in USERS])
+
+async def register(websocket):
+    USERS.add(websocket)
+    await notify_users()
+
+
+async def unregister(websocket):
+    USERS.remove(websocket)
+    await notify_users()
+
+async def touch_sensor(websocket, path):
+    await register(websocket)
+    try:
+        # await websocket.send(state_event())
+        while True:
+            data = pyser.readline().decode("ascii").rstrip()
+            # await websocket.send(data)
+
+            if data != '' and data != u'9' and data != u'10' and data != u'11':
+                if players_turn:
+                    ws_data = {'sensor': data, 'cur_player': players_turn[-1]}
+                    await websocket.send(json.dumps(ws_data))
+
+                current_player(game_board[data])
+                    # if data == u'{}'.format(i):
+                    #     print('{} is touched'.format(i))
+                combination = check_combination()
+                if combination[1]:
+                    print('winner is: {}'.format(check_combination()[0]))
+                    break
+                # else:
+                #     print('no winner')
+                #     # break
+                elif combination[1] ==  False and len(player_A) > 4 and len(player_B) == 4:
+                    print('no winner')
+                    break
+                    # play_again()
+                # break
+                # touch_sensor()
+    finally:
+        await unregister(websocket)
 
     pyser.close()
 
+start_server = websockets.serve(touch_sensor, "localhost", 6789)
 
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
 
 
 def main():
@@ -200,6 +260,7 @@ def main():
     #         print('not pressed')
     #         time.sleep(0.3)
     touch_sensor()
+    # vibration_sensor()
 
     # ldr_val = ldr.read()
     # if ldr.read() is None:
@@ -228,9 +289,6 @@ def main():
     # print('ldr_val:',ldr_val)
 
     # vibration_sensor()
-
-    # GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
-    # GPIO.add_event_callback(channel, callback)
     # print(requests)
     # payload = json.dumps({"field1": "xyz", "field2": "abc"})
     # url = "http://127.0.0.1:5000"
