@@ -1,8 +1,7 @@
-#
-# import asyncio
-# import json
-# import logging
-# import websockets
+import asyncio
+import json
+import logging
+import websockets
 #
 # logging.basicConfig()
 #
@@ -65,3 +64,10 @@
 #
 # asyncio.get_event_loop().run_until_complete(start_server)
 # asyncio.get_event_loop().run_forever()
+
+def main():
+    while True:
+        print('msg from main')
+
+if __name__ == "__main__":
+    main()

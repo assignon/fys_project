@@ -13,8 +13,14 @@ GPIO.setmode(GPIO.BCM)
 logging.basicConfig()
 # board = Arduino('/dev/ttyUSB0')
 # it = util.Iterator(board)
+
+# pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
+
 pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
+
 # pyser = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
+
+# pyser = serial.Serial('/dev/ttyAMA0', baudrate=9600, timeout=1)
 # it.start()
 # board.analog[0].enable_reporting()
 channel = 17
@@ -48,7 +54,7 @@ USERS = set()
 player_A = []
 player_B = []
 game_board = {
-    u'0': 0,
+    # u'0': 0,
     u'1': 1,
     u'2': 2,
     u'3': 3,
@@ -57,25 +63,26 @@ game_board = {
     u'6': 6,
     u'7': 7,
     u'8': 8,
+    u'9': 9,
 }
 cube_faces = {
-    u'6': 1,
-    u'7': 2,
-    u'8': 3,
-    u'9': 4,
-    u'10':5,
-    u'11': 6,
+    u'0': 3,
+    u'4': 2,
+    u'5': 6,
+    u'11': 5,
+    # u'10':5,
+    # u'11': 6,
 }
 players_turn = []
 combinations = [
-        [0,1,2],
-        [3,4,5],
-        [6,7,8],
-        [0,3,6],
+        [1,2,3],
+        [4,5,6],
+        [7,8,9],
         [1,4,7],
         [2,5,8],
-        [0,4,8],
-        [2,4,6]
+        [3,6,9],
+        [1,5,9],
+        [3,5,7]
     ]
 
 def callback(channel):
@@ -93,27 +100,36 @@ def callback(channel):
 # GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
 # GPIO.add_event_callback(channel, callback)
 
-def current_player(data):
+async def current_player(data, websocket):
+    ws_data = {}
     if len(players_turn) == 0:
         if check_uniq(data, player_A, player_B):
             players_turn.append('A')
             player_A.append(data)
+            # await websocket.send(json.dumps(ws_data))
         else:
             print('number already used')
+            await websocket.send(json.dumps({'msg': 'Number already used'}))
     else:
         player = players_turn[-1]
+        # ws_data = {'sensor': data, 'cur_player': players_turn[-1]}
         if player == "A":
             if check_uniq(data, player_B, player_A):
                 players_turn.append('B')
                 player_B.append(data)
+                # await websocket.send(json.dumps(ws_data))
             else:
                 print('number already used')
+                await websocket.send(json.dumps({'msg': 'Number already used'}))
         else:
             if check_uniq(data, player_A, player_B):
                 players_turn.append('A')
                 player_A.append(data)
+                # await websocket.send(json.dumps(ws_data))
             else:
                 print('number already used')
+                await websocket.send(json.dumps({'msg': 'Number already used'}))
+
     print(players_turn, len(players_turn), player_A,len(player_A), player_B)
 
 def check_uniq(data, arr1, arr2):
@@ -151,10 +167,10 @@ def check_combination():
                 if pa in combinations[i] and len(playerA_combination_arr) <= 3:
                     # if len(playerA_combination_arr) <= 5:
                     playerA_combination_arr.append(1)
-                    print('true')
+                    # print('true')
                 else:
                     playerA_combination_arr.append(0)
-                    print('false')
+                    # print('false')
 
             for pc in playerA_combination_arr:
                 countA += pc
@@ -172,10 +188,10 @@ def check_combination():
                 if pb in combinations[i] and len(playerB_combination_arr) <= 3:
                     # if len(playerA_combination_arr) <= 5:
                     playerB_combination_arr.append(1)
-                    print('true')
+                    # print('true')
                 else:
                     playerB_combination_arr.append(0)
-                    print('false')
+                    # print('false')
 
             for pc in playerB_combination_arr:
                 countB += pc
@@ -211,42 +227,40 @@ async def touch_sensor(websocket, path):
     try:
         # await websocket.send(state_event())
         while True:
+            # await register(websocket)
+            # try:
             data = pyser.readline().decode("ascii").rstrip()
             # await websocket.send(data)
-
-            if data != '' and data != u'9' and data != u'10' and data != u'11':
-                if players_turn:
-                    ws_data = {'sensor': data, 'cur_player': players_turn[-1]}
-                    await websocket.send(json.dumps(ws_data))
-
-                current_player(game_board[data])
-                    # if data == u'{}'.format(i):
-                    #     print('{} is touched'.format(i))
+            # print('hallo',data)
+            if data != '' and data != u'0' and data != u'10' and data != u'11':
+                if data in game_board:
+                    await current_player(game_board[data], websocket)
+                    if len(players_turn) != 0 and check_uniq(data, player_A, player_B):
+                        ws_data = {'sensor': data, 'cur_player': players_turn[-1], 'msg': 'drth'}
+                        if check_uniq(data, player_A, player_B):
+                            await websocket.send(json.dumps(ws_data))
+                        else:
+                            print('already existttttttttt')
+                            await websocket.send(json.dumps({'msg': 'Number already used'}))
+                    else:
+                        print('hallooooo')
+                    #     ws_data = {'sensor': data, 'cur_player': 'A'}
                 combination = check_combination()
                 if combination[1]:
                     print('winner is: {}'.format(check_combination()[0]))
+                    await websocket.send(json.dumps({'msg': check_combination()[0]}))
                     break
-                # else:
-                #     print('no winner')
-                #     # break
                 elif combination[1] ==  False and len(player_A) > 4 and len(player_B) == 4:
                     print('no winner')
                     break
                     # play_again()
-                # break
-                # touch_sensor()
+
     finally:
         await unregister(websocket)
 
     pyser.close()
 
-start_server = websockets.serve(touch_sensor, "localhost", 6789)
-
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
-
-
-def main():
+async def main(websocket, path):
     # GPIO.add_event_detect(23, GPIO.RISING, callback=my_func, bouncetime=200)
     # while True:
     #     state = GPIO.input(23)
@@ -259,7 +273,11 @@ def main():
     #         GPIO.output(24, False)
     #         print('not pressed')
     #         time.sleep(0.3)
-    touch_sensor()
+    await touch_sensor(websocket, path)
+    # async for message in websocket:
+    #     data = json.loads(message)
+    #     print(data)
+
     # vibration_sensor()
 
     # ldr_val = ldr.read()
@@ -305,8 +323,8 @@ def main():
 
     # print(response.text)
 
-    while True:
-        time.sleep(1)
+    # while True:
+    #     time.sleep(1)
 
     # r = requests.post('http://127.0.0.1:5000/', params={'q': 'post request sended'})
     # print(r.text)
@@ -316,6 +334,8 @@ def main():
     #     print('request sended')
 
     # GPIO.cleanup()
-
+start_server = websockets.serve(main, "localhost", 6789)
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
 if __name__ == "__main__":
     main()

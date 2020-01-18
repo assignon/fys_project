@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+        <style type="text/css">
+            body {
+                font-family: "Courier New", sans-serif;
+                text-align: center;
+            }
+            .buttons {
+                font-size: 4em;
+                display: flex;
+                justify-content: center;
+            }
+            .button, .value {
+                line-height: 1;
+                padding: 2rem;
+                margin: 2rem;
+                border: medium solid;
+                min-height: 1em;
+                min-width: 1em;
+            }
+            .button {
+                cursor: pointer;
+                user-select: none;
+            }
+            .minus {
+                color: red;
+            }
+            .plus {
+                color: green;
+            }
+            .value {
+                min-width: 2em;
+            }
+            .state {
+                font-size: 2em;
+            }
+            .gameBoard{
+                width: 70%;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                margin: auto;
+            }
+
+            .board{
+                width: 30%;
+                height: 250px;
+                border: 1px solid blue;
+                border-radius: 5px;
+                margin: 3px
+            }
+
+            .programs{
+                width: 60%;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                margin: auto;
+            }
+
+            .programs div{
+                width: 300px;
+                height: 300px;
+                border: 1px solid blue;
+                cursor: pointer;
+                border-radius: 3px;
+                margin: 20px;
+            }
+
+            .dee{
+                width: 70%;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                margin: auto;
+                display: none;
+            }
+
+            .dee h1{
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <!--<div class="buttons">
+            <div class="minus button">-</div>
+            <div class="value">?</div>
+            <div class="plus button">+</div>
+        </div>-->
+        <div class="value"></div>
+        <div class="programs">
+            <div class="prog" id="dee"></div>
+            <div class="prog" id="tictacto"></div>
+        </div>
+        <div class="gameBoard" style="display: none">
+            <div id="1" class="board"></div>
+            <div id="2" class="board"></div>
+            <div id="3" class="board"></div>
+            <div id="4" class="board"></div>
+            <div id="5" class="board"></div>
+            <div id="6" class="board"></div>
+            <div id="7" class="board"></div>
+            <div id="8" class="board"></div>
+            <div id="9" class="board"></div>
+        </div>
+
+        <div class="dee">
+            <h1 class="result">Gooi de dubbelsteen</h1>
+        </div>
+        
+        <div class="state">
+            <span class="users">?</span> online
+        </div>
+        <script>
+            var programs = document.querySelectorAll('.prog'),
+                gameBoard = document.querySelector('.gameBoard'),
+                value = document.querySelector('.value'),
+                users = document.querySelector('.users'),
+                dee = document.querySelector('.dee'),
+                websocket = new WebSocket("ws://127.0.0.1:6789/");
+
+            for (let i = 0; i < programs.length; i++) {
+                programs[i].addEventListener('click', function(e){
+                    console.log(e.currentTarget.id)
+                    let id = e.currentTarget.id
+                    // websocket.send(JSON.stringify({action: id}));
+                    // websocket.close()
+                    if (id == 'dee'){
+                        document.querySelector('.programs').style.display = "none"
+                        dee.style.display = "flex"
+                    }else{
+                        document.querySelector('.programs').style.display = "none"
+                        gameBoard.style.display = "flex"
+
+                         websocket.onmessage = function (event) {
+                            let data = JSON.parse(event.data);
+                             console.log(data)
+                            value.textContent = data.sensor+' '+data.msg
+                            if (value.textContent != ''){
+                                if(data.cur_player == 'A'){
+                                    document.getElementById(`${data.sensor}`).style.backgroundColor = 'red'
+                                }else if(data.cur_player == 'B'){
+                                    document.getElementById(`${data.sensor}`).style.backgroundColor = 'green'
+                                }
+                            }
+                        };
+                    }
+                })
+            }
+            // minus.onclick = function (event) {
+            //     websocket.send(JSON.stringify({action: 'minus'}));
+            // }
+            // plus.onclick = function (event) {
+            //     websocket.send(JSON.stringify({action: 'plus'}));
+            // }
+            // websocket.onmessage = function (event) {
+            //     let data = JSON.parse(event.data);
+            //     value.textContent = data.sensor
+            //     // if (value.textContent != ''){
+            //     //     if(data.cur_player == 'A'){
+            //     //         document.getElementById(`${data.sensor}`).style.backgroundColor = 'red'
+            //     //     }else{
+            //     //         document.getElementById(`${data.sensor}`).style.backgroundColor = 'green'
+            //     //     }
+            //     // }
+            // };
+        </script>
+    </body>
+</html>
