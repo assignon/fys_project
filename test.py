@@ -14,9 +14,9 @@ logging.basicConfig()
 # board = Arduino('/dev/ttyUSB0')
 # it = util.Iterator(board)
 
-# pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
+pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
 
-pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
+# pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
 
 # pyser = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
 
@@ -84,12 +84,22 @@ combinations = [
         [1,5,9],
         [3,5,7]
     ]
-
-def callback(channel):
+async def callback(channel, websocket):
+    if GPIO.input(channel):
+        await websocket.send(json.dumps({'vibration': True}))
+        print('mvt')
+    else:
+        await websocket.send(json.dumps({'vibration': True}))
     # while True:
-
-    if GPIO.input(channel) == 0:
-        print('no mvt', GPIO.input(channel))
+    # state = GPIO.input(channel)
+    # if state == None:
+    #     print('state', state)
+    # else:
+    #     print('no state')
+    # if GPIO.input(channel):
+    #     print('mvt detected', GPIO.input(channel))
+    # else:
+    #     print('no mvt', GPIO.input(channel))
         # while True:
         #     data = pyser.readline().decode("ascii").rstrip()
         #     if data != '':
@@ -99,6 +109,16 @@ def callback(channel):
 
 # GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
 # GPIO.add_event_callback(channel, callback)
+
+async def vibration_sensor(websocket, path):
+    GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
+    # GPIO.add_event_callback(channel, callback)
+    if GPIO.input(channel):
+        await websocket.send(json.dumps({'vibration': True}))
+        print('mvt')
+    else:
+        await websocket.send(json.dumps({'vibration': True}))
+        print('mvvt')
 
 async def current_player(data, websocket):
     ws_data = {}
@@ -232,6 +252,7 @@ async def touch_sensor(websocket, path):
             data = pyser.readline().decode("ascii").rstrip()
             # await websocket.send(data)
             # print('hallo',data)
+
             if data != '' and data != u'0' and data != u'10' and data != u'11':
                 if data in game_board:
                     await current_player(game_board[data], websocket)
@@ -273,10 +294,24 @@ async def main(websocket, path):
     #         GPIO.output(24, False)
     #         print('not pressed')
     #         time.sleep(0.3)
-    await touch_sensor(websocket, path)
-    # async for message in websocket:
-    #     data = json.loads(message)
-    #     print(data)
+    async for message in websocket:
+        data = json.loads(message)
+        if data['game'] == 'tictacto':
+            await touch_sensor(websocket, path)
+        else:
+            print('dee game')
+            await vibration_sensor(websocket, path)
+
+            # while True:
+            #     print('input value:', GPIO.input(channel))
+            #     time.sleep(1)
+                # if GPIO.input(channel) == 1:
+                #     print('input value:', GPIO.input(channel))
+                #     time.sleep(1)
+                #     if GPIO.input(channel) == 0:
+                #         print('input value:', GPIO.input(channel))
+                #         break
+        print(data)
 
     # vibration_sensor()
 

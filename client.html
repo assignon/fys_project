@@ -134,11 +134,19 @@
                 programs[i].addEventListener('click', function(e){
                     console.log(e.currentTarget.id)
                     let id = e.currentTarget.id
-                    // websocket.send(JSON.stringify({action: id}));
+                     websocket.send(JSON.stringify({game: id}));
                     // websocket.close()
                     if (id == 'dee'){
                         document.querySelector('.programs').style.display = "none"
                         dee.style.display = "flex"
+                        websocket.onmessage = function(event){
+                            let data = JSON.parse(event.data);
+                            if (data){
+                                console.log(data)
+                            }else{
+                                console.log('no data')
+                            }
+                        }
                     }else{
                         document.querySelector('.programs').style.display = "none"
                         gameBoard.style.display = "flex"

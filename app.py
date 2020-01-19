@@ -108,17 +108,17 @@ def getData():
     return res
 
 # @app.route('/sensorData', methods=['POST'])
-def callback(channel):
+#def callback(channel):
     # while True:
-    res = ''
+   # res = ''
     # req = request.get_json()
     # print(req)
-    if GPIO.input(channel) == 0:
-        print('no mvt', GPIO.input(channel))
-        socketio.emit('vibration', {'state': GPIO.input(channel), 'msg': 'mvt no detected'})
-    else:
+   # if GPIO.input(channel) == 0:
+    #    print('no mvt', GPIO.input(channel))
+   #     socketio.emit('vibration', {'state': GPIO.input(channel), 'msg': 'mvt no detected'})
+  #  else:
         # res = make_response(jsonify({'state': GPIO.input(channel), 'msg': 'mvt detected'}), 200)
-        socketio.emit('vibration', {'state': GPIO.input(channel), 'msg': 'mvt detected'})
+ #       socketio.emit('vibration', {'state': GPIO.input(channel), 'msg': 'mvt detected'})
 
         # while True:
         #     data = pyser.readline().decode("ascii").rstrip()
@@ -127,8 +127,8 @@ def callback(channel):
         #         print(face)
         #         break
 
-GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
-GPIO.add_event_callback(channel, callback)
+#GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
+#GPIO.add_event_callback(channel, callback)
 
 def current_player(data):
     if len(players_turn) == 0:
