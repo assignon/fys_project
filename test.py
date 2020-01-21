@@ -14,9 +14,9 @@ logging.basicConfig()
 # board = Arduino('/dev/ttyUSB0')
 # it = util.Iterator(board)
 
-pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
+# pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
 
-# pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
+pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
 
 # pyser = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
 
@@ -123,10 +123,12 @@ async def vibration_sensor(websocket, path):
 async def current_player(data, websocket):
     ws_data = {}
     if len(players_turn) == 0:
+
         if check_uniq(data, player_A, player_B):
             players_turn.append('A')
             player_A.append(data)
-            # await websocket.send(json.dumps(ws_data))
+            ws_data = {'sensor': data, 'cur_player': 'A'}
+            await websocket.send(json.dumps(ws_data))
         else:
             print('number already used')
             await websocket.send(json.dumps({'msg': 'Number already used'}))
@@ -137,7 +139,8 @@ async def current_player(data, websocket):
             if check_uniq(data, player_B, player_A):
                 players_turn.append('B')
                 player_B.append(data)
-                # await websocket.send(json.dumps(ws_data))
+                ws_data = {'sensor': data, 'cur_player': players_turn[-1]}
+                await websocket.send(json.dumps(ws_data))
             else:
                 print('number already used')
                 await websocket.send(json.dumps({'msg': 'Number already used'}))
@@ -145,7 +148,8 @@ async def current_player(data, websocket):
             if check_uniq(data, player_A, player_B):
                 players_turn.append('A')
                 player_A.append(data)
-                # await websocket.send(json.dumps(ws_data))
+                ws_data = {'sensor': data, 'cur_player': players_turn[-1]}
+                await websocket.send(json.dumps(ws_data))
             else:
                 print('number already used')
                 await websocket.send(json.dumps({'msg': 'Number already used'}))
@@ -255,16 +259,16 @@ async def touch_sensor(websocket, path):
 
             if data != '' and data != u'0' and data != u'10' and data != u'11':
                 if data in game_board:
+                    # ws_data = {'sensor': data, 'cur_player': players_turn[-1], 'msg': 'drth'}
                     await current_player(game_board[data], websocket)
-                    if len(players_turn) != 0 and check_uniq(data, player_A, player_B):
-                        ws_data = {'sensor': data, 'cur_player': players_turn[-1], 'msg': 'drth'}
-                        if check_uniq(data, player_A, player_B):
-                            await websocket.send(json.dumps(ws_data))
-                        else:
-                            print('already existttttttttt')
-                            await websocket.send(json.dumps({'msg': 'Number already used'}))
-                    else:
-                        print('hallooooo')
+                    # if len(players_turn) != 0 and check_uniq(data, player_A, player_B):
+                    # if check_uniq(data, player_A, player_B):
+                    #     await websocket.send(json.dumps(ws_data))
+                    # else:
+                    #     print('already existttttttttt')
+                    #     await websocket.send(json.dumps({'msg': 'Number already used'}))
+                    # else:
+                    #     print('hallooooo')
                     #     ws_data = {'sensor': data, 'cur_player': 'A'}
                 combination = check_combination()
                 if combination[1]:

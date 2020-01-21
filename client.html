@@ -153,8 +153,16 @@
 
                          websocket.onmessage = function (event) {
                             let data = JSON.parse(event.data);
-                             console.log(data)
-                            value.textContent = data.sensor+' '+data.msg
+                             console.log('data',data)
+                            if(!data.type){
+                                if(data.msg){
+                                    value.textContent = data.msg+' '+'Turn of player: '+data.cur_player
+                                }else{
+                                    value.textContent = data.sensor+' '+'Turn of player: '+data.cur_player
+                                }
+                            }else{
+                                value.textContent = 'Start the game'
+                            }
                             if (value.textContent != ''){
                                 if(data.cur_player == 'A'){
                                     document.getElementById(`${data.sensor}`).style.backgroundColor = 'red'
