@@ -117,6 +117,8 @@
 
         <div class="dee">
             <h1 class="result">Gooi de dubbelsteen</h1>
+            <p class="vsData">Begin de dubbelsteen te schudden...</p>
+            <h1 class="deeface"></h1>
         </div>
         
         <div class="state">
@@ -130,6 +132,17 @@
                 dee = document.querySelector('.dee'),
                 websocket = new WebSocket("ws://127.0.0.1:6789/");
 
+            function Dee(data){
+                let vsData = document.querySelector('.vsData')
+                let deeface = document.querySelector('.deeface')
+                if(data.move){
+                    vsData.innerHTML = `Dubbelsteen beweging: ${data.vs}`
+                }else{
+                    vsData.innerHTML = "Geen beweging"
+                    deeface.innerHTML = data.face
+                }
+            }
+
             for (let i = 0; i < programs.length; i++) {
                 programs[i].addEventListener('click', function(e){
                     console.log(e.currentTarget.id)
@@ -141,11 +154,7 @@
                         dee.style.display = "flex"
                         websocket.onmessage = function(event){
                             let data = JSON.parse(event.data);
-                            if (data){
-                                console.log(data)
-                            }else{
-                                console.log('no data')
-                            }
+                            Dee(data)
                         }
                     }else{
                         document.querySelector('.programs').style.display = "none"

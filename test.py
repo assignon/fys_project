@@ -107,18 +107,40 @@ async def callback(channel, websocket):
         #         print(face)
         #         break
 
-# GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
-# GPIO.add_event_callback(channel, callback)
 
 async def vibration_sensor(websocket, path):
-    GPIO.add_event_detect(channel, GPIO.BOTH, bouncetime=300)
-    # GPIO.add_event_callback(channel, callback)
-    if GPIO.input(channel):
-        await websocket.send(json.dumps({'vibration': True}))
-        print('mvt')
-    else:
-        await websocket.send(json.dumps({'vibration': True}))
-        print('mvvt')
+    while True:
+        serial_data = pyser.readline().decode("ascii").rstrip()
+        data = filter_serData('d', serial_data).replace('d', '')
+        ts = filter_serData('t', serial_data).replace('t', '') #touch sensor
+        vs_data = int(data)
+        print(vs_data)
+        if vs_data >= 20:
+            await websocket.send(json.dumps({'move': True, 'vs': vs_data}))
+            if vs_data == 0:
+                await websocket.send(json.dumps({'move': False}))
+                time.sleep(10000)
+
+                if ts in cube_faces:
+                    face = cube_faces[ts]
+                    print(face)
+                    await websocket.send(json.dumps({'face': face}))
+                    break
+
+# async def sendData_to_arduino(websocket, path):
+#     print(pyser.isOpen)
+#     async for message in websocket:
+#         data = json.loads(message)
+#         if data['game'] == "tictacto":
+#             pyser.write(bytes(b't'))
+#             print(pyser.readline().decode("ascii"))
+#         elif data['game'] == 'dee':
+#             pyser.write(bytes(b'd'))
+#             print(pyser.readline().decode("ascii"))
+    # pyser.close()
+
+def filter_serData(filter_by, data):
+    return data if filter_by in data else filter_by
 
 async def current_player(data, websocket):
     ws_data = {}
@@ -253,9 +275,10 @@ async def touch_sensor(websocket, path):
         while True:
             # await register(websocket)
             # try:
-            data = pyser.readline().decode("ascii").rstrip()
+            serial_data = pyser.readline().decode("ascii").rstrip()
+            data = filter_serData('t', serial_data).replace('t', '')
+            # print(filter_serData('t', serial_data))
             # await websocket.send(data)
-            # print('hallo',data)
 
             if data != '' and data != u'0' and data != u'10' and data != u'11':
                 if data in game_board:
@@ -298,6 +321,9 @@ async def main(websocket, path):
     #         GPIO.output(24, False)
     #         print('not pressed')
     #         time.sleep(0.3)
+    # while True:
+        # await sendData_to_arduino(websocket, path)
+
     async for message in websocket:
         data = json.loads(message)
         if data['game'] == 'tictacto':
