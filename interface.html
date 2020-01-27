@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+        <style type="text/css">
+            body {
+                font-family: "Courier New", sans-serif;
+                text-align: center;
+            }
+            .buttons {
+                font-size: 4em;
+                display: flex;
+                justify-content: center;
+            }
+            .button, .value {
+                line-height: 1;
+                padding: 2rem;
+                margin: 2rem;
+                border: medium solid;
+                min-height: 1em;
+                min-width: 1em;
+            }
+            .button {
+                cursor: pointer;
+                user-select: none;
+            }
+            .minus {
+                color: red;
+            }
+            .plus {
+                color: green;
+            }
+            .value {
+                min-width: 2em;
+            }
+            .state {
+                font-size: 2em;
+            }
+            .gameBoard{
+                width: 70%;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                margin: auto;
+            }
+
+            .board{
+                width: 30%;
+                height: 250px;
+                border: 1px solid blue;
+                border-radius: 5px;
+                margin: 3px
+            }
+
+            .programs{
+                width: 60%;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                margin: auto;
+            }
+
+            .programs div{
+                width: 300px;
+                height: 300px;
+                border: 1px solid blue;
+                cursor: pointer;
+                border-radius: 3px;
+                margin: 20px;
+            }
+
+            .dee{
+                width: 70%;
+                height: auto;
+                display: flex;
+                flex-direction: column;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                margin: auto;
+                display: none;
+            }
+
+            .dee h1{
+                text-align: center;
+            }
+
+            .deeface{
+                font-size: 200px;
+            }
+
+            .boardContainer{
+                width: auto;
+                height: auto;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .playersClr{
+                width: auto;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .player{
+                width: auto;
+                height: auto;
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                margin-right: 30px;
+                margin-left: 30px;
+            }
+
+            .player h2{
+                margin-left: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <!--<div class="buttons">
+            <div class="minus button">-</div>
+            <div class="value">?</div>
+            <div class="plus button">+</div>
+        </div>-->
+        <div class="value"></div>
+        <div class="programs">
+            <div class="prog" id="dee"></div>
+            <div class="prog" id="tictacto"></div>
+        </div>
+        <div class="boardContainer" style="display: none;">
+            <div class="playersClr">
+                <div class="player">
+                    <div style="width: 30px;height:30px;border-radius:3px;background-color:magenta;"></div>
+                    <h2>Player A</h2>
+                </div>
+                <div class="player">
+                    <div style="width: 30px;height:30px;border-radius:3px;background-color:springgreen;"></div>
+                    <h2>Player B</h2>
+                </div>
+            </div>
+            <div class="gameBoard" style="">
+                <div id="1" class="board"></div>
+                <div id="2" class="board"></div>
+                <div id="3" class="board"></div>
+                <div id="4" class="board"></div>
+                <div id="5" class="board"></div>
+                <div id="6" class="board"></div>
+                <div id="7" class="board"></div>
+                <div id="8" class="board"></div>
+                <div id="9" class="board"></div>
+            </div>
+        </div>
+        <div class="dee">
+            <h1 class="result">Gooi de dubbelsteen...</h1>
+            <p class="vsData"></p>
+            <h1 class="deeface"></h1>
+        </div>
+        
+        <div class="state">
+            <span class="users">?</span> online
+        </div>
+        <script>
+            var programs = document.querySelectorAll('.prog'),
+                gameBoard = document.querySelector('.gameBoard'),
+                boardContainer = document.querySelector('.boardContainer'),
+                value = document.querySelector('.value'),
+                users = document.querySelector('.users'),
+                dee = document.querySelector('.dee'),
+                websocket = new WebSocket("ws://127.0.0.1:6789/");
+
+            function Dee(){
+                let vsData = document.querySelector('.vsData')
+                let deeface = document.querySelector('.deeface')
+
+                document.querySelector('.programs').style.display = "none"
+                dee.style.display = "flex"
+                websocket.onmessage = function(event){
+                    let data = JSON.parse(event.data);
+                    if(data.move){
+                        vsData.innerHTML = `Dubbelsteen beweging snelheid: ${data.vs}`
+                    }else{
+                        vsData.innerHTML = `Dubbelsteen beweging snelheid: ${data.vs}`
+                        if(data.face != undefined){
+                            deeface.innerHTML = data.face
+                        }else{
+                            deeface.innerHTML = 'Getting data...'
+                        }
+                    }
+                }
+            }
+
+            function tictactoe(){
+                document.querySelector('.programs').style.display = "none"
+                boardContainer.style.display = "flex"
+
+                websocket.onmessage = function (event) {
+                    let data = JSON.parse(event.data);
+                    console.log('data',data)
+                    if(!data.type){
+                        if(data.msg){
+                            value.textContent = data.msg
+                        }
+                    }else{
+                        value.textContent = 'Start the game'
+                    }
+                    if (value.textContent != ''){
+                        if(data.cur_player == 'A'){
+                            document.getElementById(`${data.sensor}`).style.backgroundColor = 'magenta'
+                            document.getElementById(`${data.sensor}`).style.border = '1px solid magenta'
+                        }else if(data.cur_player == 'B'){
+                            document.getElementById(`${data.sensor}`).style.backgroundColor = 'springgreen'
+                            document.getElementById(`${data.sensor}`).style.border = '1px solid springgreen'
+                        }
+                    }
+                };
+            }
+
+            for (let i = 0; i < programs.length; i++) {
+                programs[i].addEventListener('click', function(e){
+                    console.log(e.currentTarget.id)
+                    let id = e.currentTarget.id
+                     websocket.send(JSON.stringify({game: id}));
+                    // websocket.close()
+                    if (id == 'dee'){
+                        Dee()
+                    }else{
+                        tictactoe()
+                    }
+                })
+            }
+
+        </script>
+    </body>
+</html>

@@ -112,7 +112,11 @@ async def vibration_sensor(websocket, path):
     while True:
         serial_data = pyser.readline().decode("ascii").rstrip()
         data = filter_serData('d', serial_data).replace('d', '')
-        vs_data = int(data) + vs_count
+        print(data)
+        try:
+            vs_data = int(data) + vs_count
+        except ValueError:
+            vs_data = 0
 
         if vs_data >= 20:
             vs_count = 0
@@ -290,10 +294,11 @@ async def touch_sensor(websocket, path):
                 combination = check_combination()
                 if combination[1]:
                     print('winner is: {}'.format(check_combination()[0]))
-                    await websocket.send(json.dumps({'msg': check_combination()[0]}))
+                    await websocket.send(json.dumps({'msg': 'Winner is {}'.format(check_combination()[0])}))
                     break
                 elif combination[1] ==  False and len(player_A) > 4 and len(player_B) == 4:
                     print('no winner')
+                    await websocket.send(json.dumps({'msg': 'No winner'}))
                     break
                     # play_again()
     finally:
