@@ -14,8 +14,7 @@ logging.basicConfig()
 # board = Arduino('/dev/ttyUSB0')
 # it = util.Iterator(board)
 
-# pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
-
+#pyser = serial.Serial('/dev/ttyUSB1', baudrate=9600, timeout=1)
 pyser = serial.Serial('/dev/ttyUSB0', baudrate=9600, timeout=1)
 
 # pyser = serial.Serial('/dev/ttyACM0', baudrate=9600, timeout=1)
@@ -109,23 +108,29 @@ async def callback(channel, websocket):
 
 
 async def vibration_sensor(websocket, path):
+    vs_count = 1
     while True:
         serial_data = pyser.readline().decode("ascii").rstrip()
         data = filter_serData('d', serial_data).replace('d', '')
-        ts = filter_serData('t', serial_data).replace('t', '') #touch sensor
-        vs_data = int(data)
-        print(vs_data)
-        if vs_data >= 20:
-            await websocket.send(json.dumps({'move': True, 'vs': vs_data}))
-            if vs_data == 0:
-                await websocket.send(json.dumps({'move': False}))
-                time.sleep(10000)
+        vs_data = int(data) + vs_count
 
-                if ts in cube_faces:
-                    face = cube_faces[ts]
-                    print(face)
-                    await websocket.send(json.dumps({'face': face}))
-                    break
+        if vs_data >= 20:
+            vs_count = 0
+            await websocket.send(json.dumps({'move': True, 'vs': vs_data}))
+        elif vs_data == 0:
+            await websocket.send(json.dumps({'move': False, 'vs': vs_data}))
+            if await get_cube_number(websocket) != '':
+                vs_data = 0
+                break
+
+async def get_cube_number(websocket):
+    serial_data = pyser.readline().decode("ascii").rstrip()
+    ts = filter_serData('t', serial_data).replace('t', '')  # touch sensor
+    if ts != '' and ts in cube_faces:
+        face = cube_faces[ts]
+        print('face',face)
+        await websocket.send(json.dumps({'face': face}))
+    return ts
 
 # async def sendData_to_arduino(websocket, path):
 #     print(pyser.isOpen)
@@ -181,7 +186,6 @@ async def current_player(data, websocket):
 def check_uniq(data, arr1, arr2):
     bool = False
     if len(arr1) != 0 or len(arr2) != 0:
-        # for i in arr:
         if data in arr1 or data in arr2:
             bool = False
         else:
@@ -277,22 +281,12 @@ async def touch_sensor(websocket, path):
             # try:
             serial_data = pyser.readline().decode("ascii").rstrip()
             data = filter_serData('t', serial_data).replace('t', '')
-            # print(filter_serData('t', serial_data))
             # await websocket.send(data)
 
             if data != '' and data != u'0' and data != u'10' and data != u'11':
                 if data in game_board:
                     # ws_data = {'sensor': data, 'cur_player': players_turn[-1], 'msg': 'drth'}
                     await current_player(game_board[data], websocket)
-                    # if len(players_turn) != 0 and check_uniq(data, player_A, player_B):
-                    # if check_uniq(data, player_A, player_B):
-                    #     await websocket.send(json.dumps(ws_data))
-                    # else:
-                    #     print('already existttttttttt')
-                    #     await websocket.send(json.dumps({'msg': 'Number already used'}))
-                    # else:
-                    #     print('hallooooo')
-                    #     ws_data = {'sensor': data, 'cur_player': 'A'}
                 combination = check_combination()
                 if combination[1]:
                     print('winner is: {}'.format(check_combination()[0]))
@@ -302,7 +296,6 @@ async def touch_sensor(websocket, path):
                     print('no winner')
                     break
                     # play_again()
-
     finally:
         await unregister(websocket)
 
